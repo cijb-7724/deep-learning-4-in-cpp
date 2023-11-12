@@ -11,6 +11,7 @@
 #include <math.h>
 #include <string>
 #include <random>
+#include <fstream>
 
 using namespace std;
 
@@ -50,12 +51,11 @@ using vsi = vector<set<int>>;
 using vpii = vector<pair<int, int>>;
 using vpllll = vector<pair<long long, long long>>;
 using spii = set<pair<int, int>>;
+
 //generate random 
 random_device rd;
-int seed = 0;
+int seed = rd();//seedを数値で指定するかrd()で実行毎に変えるか
 mt19937 gen(seed);
-
-
 double rand_double(double mn, double mx) {
     uniform_real_distribution<> dist(mn, mx);
     return dist(gen);
@@ -63,6 +63,14 @@ double rand_double(double mn, double mx) {
 int rand_int(int mn, int mx) {
     uniform_int_distribution<> dist_int(mn, mx);
     return dist_int(gen);
+}
+void outputTextFile(vd &v, string s) {
+    int n = v.size();
+    if (s.substr(s.size()-4, 4) != ".txt") s += ".txt";
+    ofstream outputFile (s);
+    for (int i=0; i<n; ++i) {
+        outputFile << v[i] << endl;
+    }
 }
 
 
@@ -81,15 +89,12 @@ public:
 Bandit::Bandit(const int arms=10) {
     this->arms = arms;
     this->rates.resize(this->arms);
-    // for (int i=0; i<this->arms; ++i) this->rates[i] = dist(gen);
     for (int i=0; i<this->arms; ++i) this->rates[i] = rand_double(0, 1);
 }
 Bandit::~Bandit() {}
 
 int Bandit::play(int arm) {
-    
     double rate = this->rates[arm];
-    // if (rate > dist(gen)) return 1;//rewardの値を返す
     if (rate > rand_double(0, 1)) return 1;//rewardの値を返す
     else return 0;
 }
@@ -111,6 +116,7 @@ public:
 
 Agent::Agent(double epsilon, int action_size=10) {
     this->epsilon = epsilon;
+    this->action_size = action_size;
     this->Qs.resize(this->action_size);
     this->ns.resize(this->action_size);
 }
@@ -121,7 +127,6 @@ void Agent::update(int action, double reward) {
     this->Qs[action] += (reward - this->Qs[action]) / this->ns[action];
 }
 int Agent::get_action(void) {
-    // if (dist(gen) < this->epsilon) return 
     if (rand_double(0, 1) < this->epsilon) return rand_int(0, this->Qs.size()-1);
     return distance(this->Qs.begin(), max_element(this->Qs.begin(), this->Qs.end()));
 }
@@ -130,31 +135,47 @@ int Agent::get_action(void) {
 
 
 
-void calcValue(Bandit bd, int id, int n) {
-    double q = 0;
-    double reward;
-    for (int i=1; i<=n; ++i) {
-        reward = bd.play(id);
-        q += (reward - q) / i;
-        cout << "Q = " << q << endl;
-    }
-}
+
 
 int main() {
-        // Bandit bandit;
-        // int id = 9;//10番目のスロットについて見る
-        // cout << bandit.rates[id] << endl;
-        // //10番目のスロットで20回遊ぶ
-        // for (int i=0; i<20; ++i) cout << bandit.play(id) << ' ';
-        // cout << endl;
+    //ch01/bandit.py
+    int steps = 1000;
+    double epsilon = 0.1;
 
-        // calcValue(bandit, id, 20);
-        vi tmp = {3, 6, 1, 0, 10};
-        cout << *max_element(tmp.begin(), tmp.end()) << endl;
-        cout << distance(tmp.begin(), max_element(tmp.begin(), tmp.end())) << endl;
-   
+    Bandit bandit;
+    Agent agent(epsilon);
+
+    double total_reward = 0;
+    vector<double> total_rewards;
+    vector<double> rates;
+
+    // cout << bandit.arms << endl;
+    // for (int i=0; i<bandit.arms; ++i) {
+    //     cout << "i = " << i << ' ';
+    //     cout << bandit.rates[i] << endl;
+    // }
+
+    // cout << agent.action_size << endl;
+    // cout << agent.epsilon << endl;
+    // cout << *max_element(agent.Qs.begin(), agent.Qs.end()) << endl;
+    // cout << agent.get_action() << endl;
     
-    
+
+    for (int step=0; step<steps; ++step) {
+        int action = agent.get_action();//行動を選ぶ
+        double reward = bandit.play(action);//action番目のスロットで遊ぶ
+        agent.update(action, reward);//行動と報酬から学ぶ
+        total_reward += reward;
+
+        total_rewards.push_back(total_reward);
+        rates.push_back(total_reward / (step+1));
+
+    }
+    cout << total_reward << endl;
+    outputTextFile(total_rewards, "total_rewards");
+    outputTextFile(rates, "rates.txt");
+
+
     
 }
 
