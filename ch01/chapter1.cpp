@@ -54,7 +54,7 @@ using spii = set<pair<int, int>>;
 
 //generate random 
 random_device rd;
-int seed = rd();//seedを数値で指定するかrd()で実行毎に変えるか
+int seed = 0;//seedを数値で指定するかrd()で実行毎に変えるか
 mt19937 gen(seed);
 double rand_double(double mn, double mx) {
     uniform_real_distribution<> dist(mn, mx);
