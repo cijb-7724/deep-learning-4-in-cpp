@@ -72,7 +72,19 @@ void outputTextFile(vd &v, string s) {
         outputFile << v[i] << endl;
     }
 }
-
+void outputTextFile2d(vvd &v, string s) {
+    int n = v.size(), m = v[0].size();
+    if (s.substr(s.size()-4, 4) != ".txt") s += ".txt";
+    ofstream outputFile (s);
+    for (int i=0; i<n; ++i) {
+        for (int j=0; j<m; ++j) {
+            outputFile << v[i][j];
+            if (j != m-1) outputFile << " ";
+        }
+        outputFile << endl;
+    }
+    
+}
 
 
 //------------------------------------------------------------------------
@@ -138,42 +150,39 @@ int Agent::get_action(void) {
 
 
 int main() {
-    //ch01/bandit.py
+    //ch01/bandit_avg_eps.py
+    int runs = 200;
     int steps = 1000;
     double epsilon = 0.1;
+    vector<double> epsilons = {0.01, 0.1, 0.3};
+    vector<vector<double>> avg_rates_some_eps(steps, vector<double>(epsilons.size(), 0));
 
-    Bandit bandit;
-    Agent agent(epsilon);
+    for (int eps=0; eps<epsilons.size(); ++eps) {
+        epsilon = epsilons[eps];
+        for (int run=0; run<runs; ++run) {
+            Bandit bandit;
+            Agent agent(epsilon);
 
-    double total_reward = 0;
-    vector<double> total_rewards;
-    vector<double> rates;
+            double total_reward = 0;
+            vector<double> total_rewards;
+            vector<double> rates;
+            
+            for (int step=0; step<steps; ++step) {
+                int action = agent.get_action();//行動を選ぶ
+                double reward = bandit.play(action);//action番目のスロットで遊ぶ
+                agent.update(action, reward);//行動と報酬から学ぶ
+                total_reward += reward;
 
-    // cout << bandit.arms << endl;
-    // for (int i=0; i<bandit.arms; ++i) {
-    //     cout << "i = " << i << ' ';
-    //     cout << bandit.rates[i] << endl;
-    // }
-
-    // cout << agent.action_size << endl;
-    // cout << agent.epsilon << endl;
-    // cout << *max_element(agent.Qs.begin(), agent.Qs.end()) << endl;
-    // cout << agent.get_action() << endl;
-    
-
-    for (int step=0; step<steps; ++step) {
-        int action = agent.get_action();//行動を選ぶ
-        double reward = bandit.play(action);//action番目のスロットで遊ぶ
-        agent.update(action, reward);//行動と報酬から学ぶ
-        total_reward += reward;
-
-        total_rewards.push_back(total_reward);
-        rates.push_back(total_reward / (step+1));
-
+                total_rewards.push_back(total_reward);
+                rates.push_back(total_reward / (step+1));
+            }
+            for (int step=0; step<steps; ++step) avg_rates_some_eps[step][eps] += rates[step];
+        }
+        for (int step=0; step<steps; ++step) avg_rates_some_eps[step][eps] /= runs;
     }
-    cout << total_reward << endl;
-    outputTextFile(total_rewards, "total_rewards");
-    outputTextFile(rates, "rates.txt");
+    
+    
+    outputTextFile2d(avg_rates_some_eps, "avg_rates_eps.txt");
 
 
     
