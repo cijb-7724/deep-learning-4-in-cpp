@@ -145,6 +145,12 @@ int main() {
     Bandit bandit;
     Agent agent(epsilon);
 
+    cout << "arms ";
+    cout << bandit.arms << endl;
+    for (int i=0; i<bandit.arms; ++i) {
+        cout << "i = " << i << ' '<< bandit.rates[i] << endl;
+    }
+
     double total_reward = 0;
     vector<double> total_rewards;
     vector<double> rates;
