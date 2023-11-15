@@ -149,18 +149,6 @@ int main() {
     vector<double> total_rewards;
     vector<double> rates;
 
-    // cout << bandit.arms << endl;
-    // for (int i=0; i<bandit.arms; ++i) {
-    //     cout << "i = " << i << ' ';
-    //     cout << bandit.rates[i] << endl;
-    // }
-
-    // cout << agent.action_size << endl;
-    // cout << agent.epsilon << endl;
-    // cout << *max_element(agent.Qs.begin(), agent.Qs.end()) << endl;
-    // cout << agent.get_action() << endl;
-    
-
     for (int step=0; step<steps; ++step) {
         int action = agent.get_action();//行動を選ぶ
         double reward = bandit.play(action);//action番目のスロットで遊ぶ
