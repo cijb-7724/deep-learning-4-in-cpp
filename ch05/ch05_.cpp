@@ -11,7 +11,6 @@
 
 using namespace std;
 
-#define pi 3.14159265358979323846
 #define yes "Yes"
 #define no "No"
 #define yesno(bool) if(bool){cout<<"Yes"<<endl;}else{cout<<"No"<<endl;}
@@ -113,6 +112,8 @@ public:
     double gamma;
     double action_size;
     vector<double> random_actions;
+    vector<double> pi;
+    map<pair<int, int>, map<int, double>> pi;
 public:
     RandomAgent();
     int get_action();
@@ -123,6 +124,7 @@ RandomAgent::RandomAgent() {
     this->action_size = 0.4;
 
     this->random_actions = {0.25, 0.25, 0.25, 0.25};
+    this->pi = random_actions;
 }
 // class GridWorld {
 // public:
