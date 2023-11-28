@@ -90,6 +90,7 @@ public:
     map<int, double> random_actions;
     map<pair<int, int>, map<int, double>> pi;//各座標（マス）に対して各行動をする確率
     map<pair<int, int>, double> V;//各座標（マス）の価値
+    map<pair<int, int>, double> cnts;
     vector<tuple<pair<int, int>, int, double>> memory;
 
 public:
@@ -122,11 +123,27 @@ int RandomAgent::get_action(pair<int, int> state) {
         if (probs[i] >= tmpP) return index[i];
     }
 }
-
 void RandomAgent::add(pair<int, int> state, int action, double reward) {
     tuple<pair<int, int>, int, double> data = {state, action, reward};
     this->memory.push_back(data);
 }
+void RandomAgent::reset() {
+    this->memory.resize(0);
+}
+void RandomAgent::eval() {
+    double G = 0;
+    vector<tuple<pair<int, int>, int, double>> mem = this->memory;
+    reverse(mem.begin(), mem.end());
+    for (auto data: mem) {
+        pair<int, int> state = get<0>(data);
+        int action = get<1>(data);
+        double reward = get<2>(data);
+        G = this->gamma * G + reward;
+        this->cnts[state] += 1;
+        this->V[state] += (G - this->V[state]) / this->cnts[state];
+    }
+}
+
 // class GridWorld {
 // public:
 //     int a;
