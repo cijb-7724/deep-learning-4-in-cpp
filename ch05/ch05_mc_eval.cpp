@@ -52,13 +52,14 @@ random_device rd;
 int seed = 0;//seedを数値で指定するかrd()で実行毎に変えるか
 mt19937 gen(seed);
 double rand_double(double mn, double mx) {
-    uniform_real_distribution<> dist(mn, mx);
+    uniform_real_distribution<> dist(mn, mx);//一様分布
     return dist(gen);
 }
 int rand_int(int mn, int mx) {
-    uniform_int_distribution<> dist_int(mn, mx);
+    uniform_int_distribution<> dist_int(mn, mx);//一様分布
     return dist_int(gen);
 }
+
 void outputTextFile(vd &v, string s) {
     int n = v.size();
     if (s.substr(s.size()-4, 4) != ".txt") s += ".txt";
@@ -78,7 +79,6 @@ void outputTextFile2d(vvd &v, string s) {
         }
         outputFile << endl;
     }
-    
 }
 
 
@@ -90,10 +90,14 @@ public:
     map<int, double> random_actions;
     map<pair<int, int>, map<int, double>> pi;//各座標（マス）に対して各行動をする確率
     map<pair<int, int>, double> V;//各座標（マス）の価値
+    vector<tuple<pair<int, int>, int, double>> memory;
 
 public:
     RandomAgent();
     int get_action(pair<int, int>);
+    void add(pair<int, int>, int, double);
+    void reset(void);
+    void eval(void);
 };
 
 RandomAgent::RandomAgent() {
@@ -113,15 +117,16 @@ int RandomAgent::get_action(pair<int, int> state) {
         if (itr == action_probs.begin()) probs.push_back(itr->second);
         else probs.push_back(*(--probs.end()) + itr->second);
     }
-    cout << action_probs.size() << endl;
-    cout << index.size() << endl;
-    cout << probs.size() << endl;
+    double tmpP = rand_double(0.0, 1.0);
     for (int i=0; i<index.size(); ++i) {
-        cout << index[i] << ' ' << probs[i] << endl;
+        if (probs[i] >= tmpP) return index[i];
     }
-    return 0;
 }
 
+void RandomAgent::add(pair<int, int> state, int action, double reward) {
+    tuple<pair<int, int>, int, double> data = {state, action, reward};
+    this->memory.push_back(data);
+}
 // class GridWorld {
 // public:
 //     int a;
@@ -137,9 +142,23 @@ int RandomAgent::get_action(pair<int, int> state) {
 
 int main() {
     RandomAgent randomagent;
-    randomagent.get_action({0, 0});
+    vector<int> cnt(4, 0);
+    for (int i=0; i<1000000; ++i) {
+        ++cnt[randomagent.get_action({0, 0})];
+        // cout << randomagent.get_action({0, 0}) << endl;
+        // cout << rand_double(0, 1) << endl;
+    }
+    for (int i=0; i<4; ++i) cout << cnt[i] << endl;
+
+
+
+
+
 
     
+
+
+
 }
 
 
