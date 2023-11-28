@@ -81,6 +81,59 @@ void outputTextFile2d(vvd &v, string s) {
     }
 }
 
+//grid world class p.97~
+//---------------------------------------------------------------------
+class GridWorld {
+public:
+    vector<int> action_space;
+    map<int, string> action_meaning;
+    vector<vector<double>> reward_map;
+    pair<int, int> goal_state, wall_state, start_state, agent_state;
+public:
+    GridWorld();
+    int height(void);
+    int width();
+    pair<int, int> shape();
+    vector<int> actions();
+    vector<pair<int, int>> states();
+
+};
+
+GridWorld::GridWorld() {
+    this->action_space = {0, 1, 2, 3};
+    this->action_meaning = {{0, "UP"}, {1, "DOWN"}, {2, "LEFT"}, {3, "RIGHT"}};
+    reward_map = {
+        {0, 0, 0, 1.0},
+        {0, 0, 0, -1.0},
+        {0, 0, 0, 1.0}
+    };
+    goal_state = {0, 3};
+    wall_state = {1, 1};
+    start_state = {2, 0};
+    agent_state = start_state;
+}
+int GridWorld::height(void) {
+    return this->reward_map.size();
+}
+int GridWorld::width(void) {
+    return this->reward_map[0].size();
+}
+pair<int, int> GridWorld::shape(void) {
+    return {this->height(), this->width()};
+}
+vector<int> GridWorld::actions(void) {
+    return this->action_space;
+}
+vector<pair<int, int>> GridWorld::states(void) {
+    vector<pair<int, int>> vec;
+    for (int h=0; h<this->height(); ++h) {
+        for (int w=0; w<this->width(); ++w) {
+            vec.push_back({h, w});
+        }
+    }
+    return vec;
+}
+
 
 //---------------------------------------------------------------------
 class RandomAgent {
@@ -92,7 +145,6 @@ public:
     map<pair<int, int>, double> V;//各座標（マス）の価値
     map<pair<int, int>, double> cnts;
     vector<tuple<pair<int, int>, int, double>> memory;
-
 public:
     RandomAgent();
     int get_action(pair<int, int>);
@@ -122,6 +174,7 @@ int RandomAgent::get_action(pair<int, int> state) {
     for (int i=0; i<index.size(); ++i) {
         if (probs[i] >= tmpP) return index[i];
     }
+    return 0;
 }
 void RandomAgent::add(pair<int, int> state, int action, double reward) {
     tuple<pair<int, int>, int, double> data = {state, action, reward};
@@ -143,13 +196,6 @@ void RandomAgent::eval() {
         this->V[state] += (G - this->V[state]) / this->cnts[state];
     }
 }
-
-// class GridWorld {
-// public:
-//     int a;
-// public:
-//     Gri
-// }
 //------------------------------------------------------------------------
 
 
@@ -158,24 +204,37 @@ void RandomAgent::eval() {
 
 
 int main() {
-    RandomAgent randomagent;
-    vector<int> cnt(4, 0);
-    for (int i=0; i<1000000; ++i) {
-        ++cnt[randomagent.get_action({0, 0})];
-        // cout << randomagent.get_action({0, 0}) << endl;
-        // cout << rand_double(0, 1) << endl;
+    GridWorld env;
+    // RandomAgent agent;
+    // int episodes = 1000;
+    // for (int episode=0; episode<episodes; ++episode) {
+    //     pair<int, int> state = env.reset();
+    //     agent.reset();
+    //     while (true) {
+    //         int action = agent.get_action(state);
+    //         tuple<pair<int, int>, double, bool> step = env.step(action);
+    //         pair<int, int> next_state = get<0>(step);
+    //         double reward = get<1>(step);
+    //         bool done = get<2>(step);
+    //         agent.add(state, action, reward);
+    //         if (done) {
+    //             agent.eval();
+    //             break;
+    //         }
+    //         state = next_state;
+    //     }
+    // }
+    cout << env.height() << endl;
+    cout << env.width() << endl;
+    cout << env.shape().first << ' ' << env.shape().second << endl;
+    vector<int> a = env.actions();
+    for (auto x: a) {
+        cout << x << ' ';
+    }cout << endl;
+    vector<pair<int, int>> b = env.states();
+    for (auto x: b) {
+        cout << x.first << ',' << x.second << endl;
     }
-    for (int i=0; i<4; ++i) cout << cnt[i] << endl;
-
-
-
-
-
-
-    
-
-
-
 }
 
 
