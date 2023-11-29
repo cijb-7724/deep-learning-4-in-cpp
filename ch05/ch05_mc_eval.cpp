@@ -8,6 +8,7 @@
 #include <string>
 #include <random>
 #include <fstream>
+#include <iomanip> //出力桁数
 
 using namespace std;
 
@@ -49,7 +50,7 @@ using spii = set<pair<int, int>>;
 
 //generate random 
 random_device rd;
-int seed = 0;//seedを数値で指定するかrd()で実行毎に変えるか
+int seed = rd();//seedを数値で指定するかrd()で実行毎に変えるか
 mt19937 gen(seed);
 double rand_double(double mn, double mx) {
     uniform_real_distribution<> dist(mn, mx);//一様分布
@@ -92,14 +93,14 @@ public:
 public:
     GridWorld();
     int height(void);
-    int width();
+    int width(void);
     pair<int, int> shape();
     vector<int> actions();
     vector<pair<int, int>> states();
     pair<int, int> next_state(pair<int, int>, int);
     double reward(pair<int, int>, int, pair<int, int>);
-    pair<int, int> GridWorld::reset(void);
-    tuple<pair<int, int>, double, bool> GridWorld::step(int);
+    pair<int, int> reset(void);
+    tuple<pair<int, int>, double, bool> step(int);
 };
 
 GridWorld::GridWorld() {
@@ -108,7 +109,7 @@ GridWorld::GridWorld() {
     reward_map = {
         {0, 0, 0, 1.0},
         {0, 0, 0, -1.0},
-        {0, 0, 0, 1.0}
+        {0, 0, 0, 0}
     };
     goal_state = {0, 3};
     wall_state = {1, 1};
@@ -163,6 +164,8 @@ tuple<pair<int, int>, double, bool> GridWorld::step(int action) {
     bool done = (next_state == this->goal_state);
     this->agent_state = next_state;
     return make_tuple(next_state, reward, done);
+    // return {next_state, reward, done};
+    
 }
 //---------------------------------------------------------------------
 
@@ -190,8 +193,15 @@ RandomAgent::RandomAgent() {
     this->action_size = 0.4;
 
     this->random_actions = {{0, 0.25}, {1, 0.25}, {2, 0.25}, {3, 0.25}};
-    this->pi[{0, 0}] = random_actions;
-
+    // this->pi[{0, 0}] = random_actions;
+    GridWorld tmp;
+    int h = tmp.height();
+    int w = tmp.width();
+    for (int i=0; i<h; ++i) {
+        for (int j=0; j<w; ++j) {
+            this->pi[{i, j}] = random_actions;
+        }
+    }
 }
 int RandomAgent::get_action(pair<int, int> state) {
     map<int, double> action_probs = this->pi[state];
@@ -212,10 +222,10 @@ void RandomAgent::add(pair<int, int> state, int action, double reward) {
     tuple<pair<int, int>, int, double> data = {state, action, reward};
     this->memory.push_back(data);
 }
-void RandomAgent::reset() {
+void RandomAgent::reset(void) {
     this->memory.resize(0);
 }
-void RandomAgent::eval() {
+void RandomAgent::eval(void) {
     double G = 0;
     vector<tuple<pair<int, int>, int, double>> mem = this->memory;
     reverse(mem.begin(), mem.end());
@@ -230,11 +240,6 @@ void RandomAgent::eval() {
 }
 //------------------------------------------------------------------------
 
-
-
-
-
-
 int main() {
     GridWorld env;
     RandomAgent agent;
@@ -248,15 +253,24 @@ int main() {
             pair<int, int> next_state = get<0>(step);
             double reward = get<1>(step);
             bool done = get<2>(step);
+
             agent.add(state, action, reward);
             if (done) {
                 agent.eval();
+                // cout << "episode " << episode << " done" << endl;
                 break;
             }
             state = next_state;
         }
     }
-   
+    cout << fixed << setprecision(3);
+    for (int i=0; i<env.height(); ++i) {
+        for (int j=0; j<env.width(); ++j) {
+            if (agent.V[{i, j}] >= 0) cout << ' ';
+            cout << agent.V[{i, j}] << ' ';
+        }
+        cout << endl;
+    }
 }
 
 
