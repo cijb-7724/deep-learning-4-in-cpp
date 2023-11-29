@@ -50,7 +50,13 @@ using spii = set<pair<int, int>>;
 
 //generate random 
 random_device rd;
-int seed = 0;//seedを数値で指定するかrd()で実行毎に変えるか
+// long long seed = rd();//seedを数値で指定するかrd()で実行毎に変えるか
+/*
+seedによってプログラムがどこかで無限ループに入ることがある．
+たとえば
+2712030358
+*/
+long long seed = 0;
 mt19937 gen(seed);
 double rand_double(double mn, double mx) {
     uniform_real_distribution<> dist(mn, mx);//一様分布
@@ -184,99 +190,31 @@ tuple<pair<int, int>, double, bool> GridWorld::step(int action) {
 //---------------------------------------------------------------------
 
 //---------------------------------------------------------------------
-class RandomAgent {
-public:
-    double gamma;
-    double action_size;
-    map<int, double> random_actions;
-    map<pair<int, int>, map<int, double>> pi;//各座標（マス）に対して各行動をする確率
-    map<pair<int, int>, double> V;//各座標（マス）の価値
-    map<pair<int, int>, double> cnts;
-    vector<tuple<pair<int, int>, int, double>> memory;
-
-public:
-    RandomAgent();
-    int get_action(pair<int, int>);
-    void add(pair<int, int>, int, double);
-    void reset(void);
-    void eval(void);
-};
-
-RandomAgent::RandomAgent() {
-    this->gamma = 0.9;
-    this->action_size = 0.4;
-
-    this->random_actions = {{0, 0.25}, {1, 0.25}, {2, 0.25}, {3, 0.25}};
-    GridWorld tmp;
-    int h = tmp.height();
-    int w = tmp.width();
-    for (int i=0; i<h; ++i) {
-        for (int j=0; j<w; ++j) {
-            this->pi[{i, j}] = random_actions;
-        }
-    }
-}
-int RandomAgent::get_action(pair<int, int> state) {
-    map<int, double> action_probs = this->pi[state];
-    vector<int> index;
-    vector<double> probs;
-    for (auto itr=action_probs.begin(); itr != action_probs.end(); ++itr) {
-        index.push_back(itr->first);
-        if (itr == action_probs.begin()) probs.push_back(itr->second);
-        else probs.push_back(*(--probs.end()) + itr->second);
-    }
-    double tmpP = rand_double(0.0, 1.0);
-    for (int i=0; i<index.size(); ++i) {
-        if (probs[i] >= tmpP) return index[i];
-    }
-    return 0;
-}
-void RandomAgent::add(pair<int, int> state, int action, double reward) {
-    tuple<pair<int, int>, int, double> data = {state, action, reward};
-    this->memory.push_back(data);
-}
-void RandomAgent::reset(void) {
-    this->memory.resize(0);
-}
-void RandomAgent::eval(void) {
-    double G = 0;
-    vector<tuple<pair<int, int>, int, double>> mem = this->memory;
-    reverse(mem.begin(), mem.end());
-    for (auto data: mem) {
-        pair<int, int> state = get<0>(data);
-        int action = get<1>(data);
-        double reward = get<2>(data);
-        G = this->gamma * G + reward;
-        this->cnts[state] += 1;
-        this->V[state] += (G - this->V[state]) / this->cnts[state];
-    }
-}
-//------------------------------------------------------------------------
-
-//---------------------------------------------------------------------
 class McAgent {
 public:
     double gamma;
-    double action_size;
+    double epsilon;
+    double alpha;
+    int action_size;
     map<int, double> random_actions;
     map<pair<int, int>, map<int, double>> pi;//各座標（マス）に対して各行動をする確率
     map<pair<int, int>, map<int, double>> Q;//行動価値関数
-    // map<pair<int, int>, double> cnts;
     map<pair<int, int>, map<int, double>> cnts;//型が変わった？
     vector<tuple<pair<int, int>, int, double>> memory;
 
 public:
     McAgent();
-    void update(void);
     int get_action(pair<int, int>);
     void add(pair<int, int>, int, double);
     void reset(void);
-    void eval(void);
+    void update(void);
 };
 
 McAgent::McAgent() {
     this->gamma = 0.9;
-    this->action_size = 0.4;
+    this->epsilon = 0.1;
+    this->alpha = 0.1;
+    this->action_size = 4;
 
     this->random_actions = {{0, 0.25}, {1, 0.25}, {2, 0.25}, {3, 0.25}};
     GridWorld tmp;
@@ -319,10 +257,10 @@ void McAgent::update(void) {
         int action = get<1>(data);
         double reward = get<2>(data);
         G = this->gamma * G + reward;
-        this->cnts[state][action] += 1;
-        this->Q[state][action] += (G - this->Q[state][action]) / this->cnts[state][action];
+        // this->cnts[state][action] += 1;
+        this->Q[state][action] += (G - this->Q[state][action]) * this->alpha;
         
-        vector<double> action_prob = greedy_probs(this->Q, state);
+        vector<double> action_prob = greedy_probs(this->Q, state, this->epsilon);
         for (int i=0; i<(int)action_prob.size(); ++i) {
             this->pi[state][i] = action_prob[i];
         }
@@ -333,9 +271,10 @@ void McAgent::update(void) {
 
 
 int main() {
+    cout << "random seed = " << seed << endl;
     GridWorld env;
-    RandomAgent agent;
-    int episodes = 1000;
+    McAgent agent;
+    int episodes = 10000;
     for (int episode=0; episode<episodes; ++episode) {
         pair<int, int> state = env.reset();
         agent.reset();
@@ -348,19 +287,40 @@ int main() {
 
             agent.add(state, action, reward);
             if (done) {
-                cout << "memory size " << agent.memory.size() << endl;
-                agent.eval();
+                agent.update();
                 // cout << "episode " << episode << " done" << endl;
+                // cout << agent.memory.size() << endl;
                 break;
             }
             state = next_state;
         }
     }
-    cout << fixed << setprecision(3);
+    cout << fixed << setprecision(2);
     for (int i=0; i<env.height(); ++i) {
         for (int j=0; j<env.width(); ++j) {
-            if (agent.V[{i, j}] >= 0) cout << ' ';
-            cout << agent.V[{i, j}] << ' ';
+            // cout << "i, j = " << i << ',' << j << endl;
+            if (env.wall_state == make_pair(i, j)) {
+                cout << "W";
+                continue;
+            } else if (env.goal_state == make_pair(i, j)) {
+                cout << "G";
+                continue;
+            }
+            double mx = -10;
+            for (int k=0; k<agent.action_size; ++k) {
+                // cout << env.action_meaning[k] << " : ";
+                // cout << agent.Q[{i, j}][k] << ' ';
+                mx = max(mx, agent.Q[{i, j}][k]);
+            }
+            for (int k=0; k<agent.action_size; ++k) {
+                if (agent.Q[{i, j}][k] == mx) {
+                    if (env.action_meaning[k] == "LEFT") cout << "<";
+                    else if (env.action_meaning[k] == "RIGHT") cout << ">";
+                    else if (env.action_meaning[k] == "UP") cout << "^";
+                    else cout << "v";
+                }
+            }
+            // cout << endl;
         }
         cout << endl;
     }
@@ -368,6 +328,11 @@ int main() {
 
 
 /*
+
+aaaxxxxxaaa
+xxxxxaxxxxx
+aaaxxxxxaaa
+
 
 */
 

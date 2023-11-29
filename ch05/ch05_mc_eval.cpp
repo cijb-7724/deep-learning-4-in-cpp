@@ -173,7 +173,7 @@ tuple<pair<int, int>, double, bool> GridWorld::step(int action) {
 class RandomAgent {
 public:
     double gamma;
-    double action_size;
+    int action_size;
     map<int, double> random_actions;
     map<pair<int, int>, map<int, double>> pi;//各座標（マス）に対して各行動をする確率
     map<pair<int, int>, double> V;//各座標（マス）の価値
@@ -190,7 +190,7 @@ public:
 
 RandomAgent::RandomAgent() {
     this->gamma = 0.9;
-    this->action_size = 0.4;
+    this->action_size = 4;
 
     this->random_actions = {{0, 0.25}, {1, 0.25}, {2, 0.25}, {3, 0.25}};
     GridWorld tmp;
@@ -255,9 +255,7 @@ int main() {
 
             agent.add(state, action, reward);
             if (done) {
-                cout << "memory size " << agent.memory.size() << endl;
                 agent.eval();
-                // cout << "episode " << episode << " done" << endl;
                 break;
             }
             state = next_state;
