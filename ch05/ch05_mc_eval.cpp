@@ -96,7 +96,10 @@ public:
     pair<int, int> shape();
     vector<int> actions();
     vector<pair<int, int>> states();
-
+    pair<int, int> next_state(pair<int, int>, int);
+    double reward(pair<int, int>, int, pair<int, int>);
+    pair<int, int> GridWorld::reset(void);
+    tuple<pair<int, int>, double, bool> GridWorld::step(int);
 };
 
 GridWorld::GridWorld() {
@@ -133,7 +136,35 @@ vector<pair<int, int>> GridWorld::states(void) {
     }
     return vec;
 }
+pair<int, int> GridWorld::next_state(pair<int, int> state, int action) {
+    vector<pair<int, int>> action_move_map = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}};
+    pair<int, int> move = action_move_map[action];
+    pair<int, int> next_state = {state.first + move.first, state.second + move.second};
+    int ny = next_state.first, nx = next_state.second;
 
+    if (nx < 0 || nx >= this->width() || ny < 0 || ny >= this->height()) {
+        next_state = state;
+    } else if (next_state == this->wall_state) {
+        next_state = state;
+    }
+    return next_state;
+}
+double GridWorld::reward(pair<int, int> state, int, pair<int, int> next_state) {
+    return this->reward_map[next_state.first][next_state.second];
+}
+pair<int, int> GridWorld::reset(void) {
+    this->agent_state = this->start_state;
+    return this->agent_state;
+}
+tuple<pair<int, int>, double, bool> GridWorld::step(int action) {
+    pair<int, int> state = this->agent_state;
+    pair<int, int> next_state = this->next_state(state, action);
+    double reward = this->reward(state, action, next_state);
+    bool done = (next_state == this->goal_state);
+    this->agent_state = next_state;
+    return make_tuple(next_state, reward, done);
+}
+//---------------------------------------------------------------------
 
 //---------------------------------------------------------------------
 class RandomAgent {
@@ -145,6 +176,7 @@ public:
     map<pair<int, int>, double> V;//各座標（マス）の価値
     map<pair<int, int>, double> cnts;
     vector<tuple<pair<int, int>, int, double>> memory;
+
 public:
     RandomAgent();
     int get_action(pair<int, int>);
@@ -205,36 +237,26 @@ void RandomAgent::eval() {
 
 int main() {
     GridWorld env;
-    // RandomAgent agent;
-    // int episodes = 1000;
-    // for (int episode=0; episode<episodes; ++episode) {
-    //     pair<int, int> state = env.reset();
-    //     agent.reset();
-    //     while (true) {
-    //         int action = agent.get_action(state);
-    //         tuple<pair<int, int>, double, bool> step = env.step(action);
-    //         pair<int, int> next_state = get<0>(step);
-    //         double reward = get<1>(step);
-    //         bool done = get<2>(step);
-    //         agent.add(state, action, reward);
-    //         if (done) {
-    //             agent.eval();
-    //             break;
-    //         }
-    //         state = next_state;
-    //     }
-    // }
-    cout << env.height() << endl;
-    cout << env.width() << endl;
-    cout << env.shape().first << ' ' << env.shape().second << endl;
-    vector<int> a = env.actions();
-    for (auto x: a) {
-        cout << x << ' ';
-    }cout << endl;
-    vector<pair<int, int>> b = env.states();
-    for (auto x: b) {
-        cout << x.first << ',' << x.second << endl;
+    RandomAgent agent;
+    int episodes = 1000;
+    for (int episode=0; episode<episodes; ++episode) {
+        pair<int, int> state = env.reset();
+        agent.reset();
+        while (true) {
+            int action = agent.get_action(state);
+            tuple<pair<int, int>, double, bool> step = env.step(action);
+            pair<int, int> next_state = get<0>(step);
+            double reward = get<1>(step);
+            bool done = get<2>(step);
+            agent.add(state, action, reward);
+            if (done) {
+                agent.eval();
+                break;
+            }
+            state = next_state;
+        }
     }
+   
 }
 
 
