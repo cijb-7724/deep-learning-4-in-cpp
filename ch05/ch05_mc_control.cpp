@@ -81,7 +81,7 @@ void outputTextFile2d(vvd &v, string s) {
         outputFile << endl;
     }
 }
-vector<double> greedy_probs(map<pair<int, int>, map<int, double>> Q, pair<int, int> state, int action_size=4) {
+vector<double> greedy_probs(map<pair<int, int>, map<int, double>> Q, pair<int, int> state, double epsilon=0, int action_size=4) {
     vector<double> qs(action_size);
     for (int i=0; i<action_size; ++i) qs[i] = Q[state][i];
     
@@ -89,9 +89,10 @@ vector<double> greedy_probs(map<pair<int, int>, map<int, double>> Q, pair<int, i
     for (int i=0; i<action_size; ++i)
         if (qs[i] == *max_element(qs.begin(), qs.end()))
             max_action = i;
-
+    
+    double base_prob = epsilon / action_size;
     vector<double> action_probs(4, 0);
-    action_probs[max_action] = 1;
+    action_probs[max_action] += 1-epsilon;
     return action_probs;
 }
 
@@ -287,6 +288,28 @@ McAgent::McAgent() {
         }
     }
 }
+int McAgent::get_action(pair<int, int> state) {
+    map<int, double> action_probs = this->pi[state];
+    vector<int> index;
+    vector<double> probs;
+    for (auto itr=action_probs.begin(); itr != action_probs.end(); ++itr) {
+        index.push_back(itr->first);
+        if (itr == action_probs.begin()) probs.push_back(itr->second);
+        else probs.push_back(*(--probs.end()) + itr->second);
+    }
+    double tmpP = rand_double(0.0, 1.0);
+    for (int i=0; i<index.size(); ++i) {
+        if (probs[i] >= tmpP) return index[i];
+    }
+    return 0;
+}
+void McAgent::add(pair<int, int> state, int action, double reward) {
+    tuple<pair<int, int>, int, double> data = {state, action, reward};
+    this->memory.push_back(data);
+}
+void McAgent::reset(void) {
+    this->memory.resize(0);
+}
 void McAgent::update(void) {
     double G = 0;
     vector<tuple<pair<int, int>, int, double>> mem = this->memory;
@@ -305,41 +328,8 @@ void McAgent::update(void) {
         }
     }
 }
-int RandomAgent::get_action(pair<int, int> state) {
-    map<int, double> action_probs = this->pi[state];
-    vector<int> index;
-    vector<double> probs;
-    for (auto itr=action_probs.begin(); itr != action_probs.end(); ++itr) {
-        index.push_back(itr->first);
-        if (itr == action_probs.begin()) probs.push_back(itr->second);
-        else probs.push_back(*(--probs.end()) + itr->second);
-    }
-    double tmpP = rand_double(0.0, 1.0);
-    for (int i=0; i<index.size(); ++i) {
-        if (probs[i] >= tmpP) return index[i];
-    }
-    return 0;
-}
-void RandomAgent::add(pair<int, int> state, int action, double reward) {
-    tuple<pair<int, int>, int, double> data = {state, action, reward};
-    this->memory.push_back(data);
-}
-void RandomAgent::reset(void) {
-    this->memory.resize(0);
-}
-void RandomAgent::eval(void) {
-    double G = 0;
-    vector<tuple<pair<int, int>, int, double>> mem = this->memory;
-    reverse(mem.begin(), mem.end());
-    for (auto data: mem) {
-        pair<int, int> state = get<0>(data);
-        int action = get<1>(data);
-        double reward = get<2>(data);
-        G = this->gamma * G + reward;
-        this->cnts[state] += 1;
-        this->V[state] += (G - this->V[state]) / this->cnts[state];
-    }
-}
+
+
 
 
 int main() {
