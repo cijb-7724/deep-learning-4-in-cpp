@@ -242,7 +242,7 @@ void RandomAgent::eval(void) {
 int main() {
     GridWorld env;
     RandomAgent agent;
-    int episodes = 1000;
+    int episodes = 1000;//1000
     for (int episode=0; episode<episodes; ++episode) {
         pair<int, int> state = env.reset();
         agent.reset();
@@ -255,6 +255,7 @@ int main() {
 
             agent.add(state, action, reward);
             if (done) {
+                // cout << "lenght" << episode << ' ' << agent.memory.size() << endl;
                 agent.eval();
                 break;
             }
